@@ -3,20 +3,61 @@ import { supabase } from "@/lib/supabase";
 function deriveSignal(text) {
   const t = text.toLowerCase();
 
-  if (t.includes("overheat") || t.includes("overheating")) {
-    return { category: "Maintenance", severity: "High" };
+  
+  if (
+    t.includes("overheat") ||
+    t.includes("overheating") ||
+    t.includes("voltage drop") ||
+    t.includes("shutdown") ||
+    t.includes("critical")
+  ) {
+    return { category: "Incident", severity: "High" };
   }
 
-  if (t.includes("delay") || t.includes("shipment")) {
-    return { category: "Logistics", severity: "Medium" };
+  
+  if (
+    t.includes("failed qa") ||
+    t.includes("failed") ||
+    t.includes("defect") ||
+    t.includes("error")
+  ) {
+    return { category: "Issue", severity: "Medium" };
   }
 
-  if (t.includes("failed") || t.includes("error")) {
-    return { category: "Quality", severity: "High" };
+  
+  if (
+    t.includes("needs") ||
+    t.includes("investigate") ||
+    t.includes("fix") ||
+    t.includes("replace") ||
+    t.includes("check")
+  ) {
+    return { category: "Task", severity: "Medium" };
   }
 
-  return { category: "Unknown", severity: "Low" };
+  
+  if (
+    t.includes("delay") ||
+    t.includes("shipment") ||
+    t.includes("vendor") ||
+    t.includes("delivery")
+  ) {
+    return { category: "Event", severity: "Low" };
+  }
+
+  
+  if (
+    t.includes("observed") ||
+    t.includes("recorded") ||
+    t.includes("noted")
+  ) {
+    return { category: "Log", severity: "Low" };
+  }
+
+  
+  return { category: "Note", severity: "Low" };
 }
+
 
 export async function POST(req) {
   try {
