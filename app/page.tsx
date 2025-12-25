@@ -13,16 +13,25 @@ type Signal = {
   created_at: string;
 };
 
+type Summary = {
+  [category: string]: number;
+};
+
 export default function Home() {
-  const [text, setText] = useState<string>("");
+  const [text, setText] = useState("");
   const [signals, setSignals] = useState<Signal[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string>("");
+  const [summary, setSummary] = useState<Summary>({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   async function loadSignals() {
     const res = await fetch("/api/signals");
-    const data: Signal[] = await res.json();
-    setSignals(data);
+    setSignals(await res.json());
+  }
+
+  async function loadSummary() {
+    const res = await fetch("/api/analytics/summary");
+    setSummary(await res.json());
   }
 
   async function submitSignal() {
@@ -45,6 +54,7 @@ export default function Home() {
 
       setText("");
       loadSignals();
+      loadSummary();
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -54,41 +64,119 @@ export default function Home() {
 
   useEffect(() => {
     loadSignals();
+    loadSummary();
   }, []);
 
   return (
-    <main style={{ padding: 24, maxWidth: 700 }}>
-      <h2>OpsSense</h2>
+    <main
+      style={{
+        padding: 32,
+        maxWidth: 900,
+        margin: "0 auto",
+        fontFamily: "system-ui, sans-serif"
+      }}
+    >
+      {/* Header */}
+      <header style={{ marginBottom: 32 }}>
+        <h1 style={{ marginBottom: 8 }}>SelfMetrics</h1>
+        <p style={{ color: "#555" }}>
+          Turn unstructured operational inputs into actionable signals.
+        </p>
+      </header>
 
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Enter any operational input..."
-        style={{ width: "100%", height: 80 }}
-      />
+      {/* Input Card */}
+      <section
+        style={{
+          padding: 16,
+          border: "1px solid #e5e7eb",
+          borderRadius: 8,
+          marginBottom: 32
+        }}
+      >
+        <h3 style={{ marginBottom: 8 }}>New Signal</h3>
 
-      <br />
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="e.g. Motor overheating after 3 hours"
+          style={{
+            width: "100%",
+            height: 80,
+            padding: 8,
+            marginBottom: 12
+          }}
+        />
 
-      <button onClick={submitSignal} disabled={loading}>
-        {loading ? "Submitting..." : "Submit"}
-      </button>
+        <button
+          onClick={submitSignal}
+          disabled={loading}
+          style={{
+            padding: "8px 16px",
+            cursor: "pointer"
+          }}
+        >
+          {loading ? "Submitting..." : "Submit Signal"}
+        </button>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+        {error && (
+          <p style={{ color: "red", marginTop: 8 }}>{error}</p>
+        )}
+      </section>
 
-      <hr />
+      {/* Analytics */}
+      <section style={{ marginBottom: 32 }}>
+        <h3 style={{ marginBottom: 12 }}>Signals by Category</h3>
 
-      <h3>Signals</h3>
+        {Object.keys(summary).length === 0 && (
+          <p style={{ color: "#777" }}>No analytics yet.</p>
+        )}
 
-      {signals.length === 0 && <p>No signals yet.</p>}
+        {Object.entries(summary).map(([category, count]) => (
+          <div key={category} style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 14, marginBottom: 4 }}>
+              {category} ({count})
+            </div>
+            <div
+              style={{
+                height: 10,
+                width: `${count * 50}px`,
+                background: "#2563eb",
+                borderRadius: 4
+              }}
+            />
+          </div>
+        ))}
+      </section>
 
-      {signals.map((s) => (
-        <div key={s.id} style={{ marginBottom: 12 }}>
-          <b>{s.derived?.category || "Unknown"}</b>{" "}
-          ({s.derived?.severity || "Low"})
-          <br />
-          {s.raw_text}
-        </div>
-      ))}
+      {/* Signals Feed */}
+      <section>
+        <h3 style={{ marginBottom: 12 }}>Recent Signals</h3>
+
+        {signals.length === 0 && (
+          <p style={{ color: "#777" }}>No signals yet.</p>
+        )}
+
+        {signals.map((s) => (
+          <div
+            key={s.id}
+            style={{
+              padding: 12,
+              border: "1px solid #e5e7eb",
+              borderRadius: 8,
+              marginBottom: 12
+            }}
+          >
+            <div style={{ fontWeight: 600 }}>
+              {s.derived?.category || "Unknown"} ·{" "}
+              {s.derived?.severity || "Low"}
+            </div>
+
+            <div style={{ color: "#555", marginTop: 4 }}>
+              {s.raw_text}
+            </div>
+          </div>
+        ))}
+      </section>
     </main>
   );
 }
